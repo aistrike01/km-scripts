@@ -1,10 +1,13 @@
 import { AxiosError, AxiosInstance } from "axios";
 import qs from "qs";
 import chalk from "chalk";
+import { ModeType } from "../types";
 
-export const getSalonsWithoutEmail = async (
+type UserType = { id: number; email: string; createdAt: string };
+
+export const salonsOwnersWithoutSalon = async (
   api: AxiosInstance,
-  read: boolean
+  mode: ModeType
 ) => {
   try {
     const query = qs.stringify(
@@ -24,21 +27,25 @@ export const getSalonsWithoutEmail = async (
       }
     );
 
-    const { data: users } = await api.get(`/api/users?${query}`);
+    const { data: users } = await api.get<UserType[]>(`/api/users?${query}`);
 
-    if (!read) {
+    if (mode === "update") {
       for (const user of users) {
         const { status } = await api.put(`/api/users/${user.id}`, {
           isAppActivated: false,
         });
 
         if (status >= 200 && status < 300) {
-          chalk.yellow("Updated successfully");
+          console.log(chalk.yellow(`${user.id} - Updated successfully`));
         }
       }
     }
 
-    return users;
+    return users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+    }));
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error(`${error.status} - ${error.message}`);

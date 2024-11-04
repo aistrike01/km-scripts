@@ -1,6 +1,6 @@
 import { AxiosError, AxiosInstance } from "axios";
 
-export const getUsersWithDuplicateEmail = async (api: AxiosInstance) => {
+export const usersWithDuplicateEmail = async (api: AxiosInstance) => {
   try {
     const { data: users } = await api.get<
       { id: Number; email: string; createdAt: string }[]

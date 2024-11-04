@@ -1,21 +1,33 @@
+import { ExitPromptError } from "@inquirer/core";
 import axios, { AxiosInstance } from "axios";
 import dotenv from "dotenv";
 import fs from "fs";
-import path from "path";
 import inquirer from "inquirer";
 import { Parser } from "json2csv";
+import path from "path";
+import chalk from "chalk";
 
-import { getSalonsWithoutEmail } from "./scripts/get-salons-users-without-email";
-import { getUsersWithDuplicateEmail } from "./scripts/get-users-with-duplicate-emails";
+import type { ModeType } from "./types";
 
 import { log } from "./utils/log";
+
+import { salonsOwnersWithoutSalon } from "./scripts/salons-owners-without-salon";
+import { salonsWithoutEmail } from "./scripts/salons-without-email";
+import { salonsWithoutOwners } from "./scripts/salons-without-owners";
+import { usersWithDuplicateEmail } from "./scripts/users-with-duplicate-emails";
 
 const prompt = inquirer.prompt;
 
 dotenv.config();
 
 type EnvUnion = "local" | "staging" | "production";
-type ScriptName = "get-salons-without-email" | "get-users-with-duplicate-email";
+
+type ScriptName =
+  | "salons-without-email"
+  | "salons-without-owners"
+  | "salons-owners-without-salon"
+  | "users-with-duplicate-email";
+
 const tokens: Record<EnvUnion, string | undefined> = {
   local: process.env.LOCAL_TOKEN,
   staging: process.env.STAGING_TOKEN,
@@ -31,10 +43,12 @@ const url: Record<EnvUnion, string | undefined> = {
 const init = async () => {
   const scripts: Record<
     ScriptName,
-    (api: AxiosInstance, read: boolean) => any
+    (api: AxiosInstance, mode: ModeType) => any
   > = {
-    "get-salons-without-email": getSalonsWithoutEmail,
-    "get-users-with-duplicate-email": getUsersWithDuplicateEmail,
+    "salons-without-email": salonsWithoutEmail,
+    "salons-without-owners": salonsWithoutOwners,
+    "salons-owners-without-salon": salonsOwnersWithoutSalon,
+    "users-with-duplicate-email": usersWithDuplicateEmail,
   };
 
   try {
@@ -57,12 +71,13 @@ const init = async () => {
       },
     ]);
 
-    const { read } = await prompt<{ read: boolean }>([
+    const { mode } = await prompt<{ mode: ModeType }>([
       {
-        type: "confirm",
-        name: "read",
-        message: "Read data without making changes?",
-        default: true,
+        type: "list",
+        name: "mode",
+        message: "Just read data or update it?",
+        choices: ["read", "update"],
+        default: "read",
       },
     ]);
 
@@ -82,7 +97,19 @@ const init = async () => {
       }
     }
 
-    console.log(`Running script "${script}" in environment "${env}"...`);
+    console.log(
+      chalk.cyanBright(`Running script "${script}" in environment "${env}"...`)
+    );
+
+    if (!url[env]) {
+      console.log(chalk.bgRed(`Please add ${env} url to ".env"`));
+      return;
+    }
+
+    if (!tokens[env]) {
+      console.log(chalk.bgRed(`Please add ${env} api token to ".env"`));
+      return;
+    }
 
     const api = axios.create({
       baseURL: url[env],
@@ -93,10 +120,16 @@ const init = async () => {
     });
 
     const run = scripts[script];
-    const res = await run(api, read);
+    const res = await run(api, mode);
 
     if (res) {
+      if (!res.length) {
+        console.log(chalk.yellow("Nothing found!"));
+        return;
+      }
+
       log(res);
+      console.log(chalk.green(`${res.length} - items found`));
 
       const { exportToCsv } = await prompt<{ exportToCsv: boolean }>([
         {
@@ -117,11 +150,23 @@ const init = async () => {
           fs.mkdirSync(dir, { recursive: true });
         }
 
-        const filePath = path.join(dir, `${script}-data-${Date.now()}.csv`);
+        const date = new Date()
+          .toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
+          })
+          .replace(/\//g, "-");
+
+        const filePath = path.join(dir, `${script}-data-${date}.csv`);
         fs.writeFileSync(filePath, csv);
       }
     }
   } catch (error) {
+    if (error instanceof ExitPromptError) {
+      return;
+    }
+
     console.error("An error occurred:", error);
   }
 };
