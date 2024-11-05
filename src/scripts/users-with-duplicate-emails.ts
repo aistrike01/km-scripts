@@ -13,7 +13,12 @@ export const usersWithDuplicateEmail = async (api: AxiosInstance) => {
 
     return users
       .filter((user) => emailCount[user.email] > 1)
-      .map((it) => ({ id: it.id, email: it.email, createdAt: it.createdAt }));
+      .map((user) => ({
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt,
+      }))
+      .sort((a, b) => a.email.localeCompare(b.email));
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error(`${error.status} - ${error.message}`);

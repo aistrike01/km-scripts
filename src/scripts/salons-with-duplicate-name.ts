@@ -1,27 +1,14 @@
 import { AxiosError, AxiosInstance } from "axios";
 import qs from "qs";
-import chalk from "chalk";
+import { SalonsResponseType, SalonType } from "../types";
 
-import { log } from "../utils/log";
-import { ModeType, SalonsResponseType, SalonType } from "../types";
-
-export const salonsWithoutOwners = async (
-  api: AxiosInstance,
-  mode: ModeType
-) => {
+export const salonsWithDuplicateName = async (api: AxiosInstance) => {
   try {
     const getSalons = async (start: number, limit: number) => {
       const query = qs.stringify(
         {
           filters: {
-            owner: {
-              username: {
-                $null: true,
-              },
-            },
-          },
-          populate: {
-            owner: true,
+            name: { $notNull: true },
           },
           pagination: {
             start,
@@ -58,23 +45,26 @@ export const salonsWithoutOwners = async (
       start += limit;
     }
 
-    const salons = allSalons.map((it) => ({
-      id: it.id,
-      name: it.attributes.name ?? "null",
-      createdAt: it.attributes.createdAt,
-    }));
+    const nameCount = allSalons.reduce<Record<string, number>>((acc, salon) => {
+      const name = salon.attributes.name.split(" ").join("").toLowerCase();
+      acc[name] = (acc[name] || 0) + 1;
 
-    if (mode === "update") {
-      for (const salon of allSalons) {
-        const { status } = await api.delete(`/api/salons/${salon.id}`);
+      return acc;
+    }, {});
 
-        if (status >= 200 && status < 300) {
-          console.log(chalk.redBright(`${salon.id} - Deleted successfully`));
-        }
-      }
-    }
+    console.log(nameCount);
 
-    return salons;
+    return allSalons
+      .filter(
+        (salon) =>
+          nameCount[salon.attributes.name.split(" ").join("").toLowerCase()] > 1
+      )
+      .map((salon) => ({
+        id: salon.id,
+        name: salon.attributes.name,
+        createdAt: salon.attributes.createdAt,
+      }))
+      ?.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error(`${error.status} - ${error.message}`);

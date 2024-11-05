@@ -15,6 +15,8 @@ import { salonsOwnersWithoutSalon } from "./scripts/salons-owners-without-salon"
 import { salonsWithoutEmail } from "./scripts/salons-without-email";
 import { salonsWithoutOwners } from "./scripts/salons-without-owners";
 import { usersWithDuplicateEmail } from "./scripts/users-with-duplicate-emails";
+import { salonsWithDuplicateName } from "./scripts/salons-with-duplicate-name";
+import { usersWithMultipleSalons } from "./scripts/users-with-multiple-salons";
 
 const prompt = inquirer.prompt;
 
@@ -26,7 +28,9 @@ type ScriptName =
   | "salons-without-email"
   | "salons-without-owners"
   | "salons-owners-without-salon"
-  | "users-with-duplicate-email";
+  | "users-with-duplicate-email"
+  | "salons-with-duplicate-name"
+  | "users-with-multiple-salons";
 
 const tokens: Record<EnvUnion, string | undefined> = {
   local: process.env.LOCAL_TOKEN,
@@ -49,6 +53,8 @@ const init = async () => {
     "salons-without-owners": salonsWithoutOwners,
     "salons-owners-without-salon": salonsOwnersWithoutSalon,
     "users-with-duplicate-email": usersWithDuplicateEmail,
+    "salons-with-duplicate-name": salonsWithDuplicateName,
+    "users-with-multiple-salons": usersWithMultipleSalons,
   };
 
   try {
