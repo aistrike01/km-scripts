@@ -1,12 +1,6 @@
 import { AxiosError, AxiosInstance } from "axios";
 import qs from "qs";
-import {
-  SalonsResponseType,
-  SalonType,
-  UsersResponseType,
-  UserType,
-} from "../types";
-import { log } from "../utils/log";
+import { SalonsResponseType, SalonType } from "../types";
 
 export const usersWithMultipleSalons = async (api: AxiosInstance) => {
   try {
@@ -15,9 +9,11 @@ export const usersWithMultipleSalons = async (api: AxiosInstance) => {
         {
           filters: {
             owner: { email: { $notNull: true } },
+            users: { id: { $null: true } },
           },
           populate: {
             owner: true,
+            users: true,
           },
           pagination: {
             start,
@@ -64,14 +60,14 @@ export const usersWithMultipleSalons = async (api: AxiosInstance) => {
       {}
     );
 
-    log(allSalons.slice(0, 1));
-
     return allSalons
       .filter((salon) => ownerCount[salon.attributes.owner.data.id] > 1)
       .map((salon) => ({
         salonId: salon.id,
         salonName: salon.attributes.name,
         salonCreatedAt: salon.attributes.createdAt,
+        salonUsersEmail:
+          salon?.attributes?.users?.data?.[0]?.attributes?.email ?? null,
         ownerId: salon.attributes.owner.data.id,
         ownerEmail: salon.attributes.owner.data.attributes.email,
         ownerCreatedAt: salon.attributes.owner.data.attributes.createdAt,

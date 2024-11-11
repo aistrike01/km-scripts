@@ -17,6 +17,7 @@ import { salonsWithoutOwners } from "./scripts/salons-without-owners";
 import { usersWithDuplicateEmail } from "./scripts/users-with-duplicate-emails";
 import { salonsWithDuplicateName } from "./scripts/salons-with-duplicate-name";
 import { usersWithMultipleSalons } from "./scripts/users-with-multiple-salons";
+import { stylistsWithoutSalon } from "./scripts/stylists-without-salon";
 
 const prompt = inquirer.prompt;
 
@@ -25,6 +26,7 @@ dotenv.config();
 type EnvUnion = "local" | "staging" | "production";
 
 type ScriptName =
+  | "stylists-without-salon"
   | "salons-without-email"
   | "salons-without-owners"
   | "salons-owners-without-salon"
@@ -49,6 +51,7 @@ const init = async () => {
     ScriptName,
     (api: AxiosInstance, mode: ModeType) => any
   > = {
+    "stylists-without-salon": stylistsWithoutSalon,
     "salons-without-email": salonsWithoutEmail,
     "salons-without-owners": salonsWithoutOwners,
     "salons-owners-without-salon": salonsOwnersWithoutSalon,
@@ -93,7 +96,7 @@ const init = async () => {
           type: "confirm",
           name: "confirm",
           message: "Are you sure you want to run the script in production?",
-          default: false,
+          default: true,
         },
       ]);
 
@@ -134,8 +137,11 @@ const init = async () => {
         return;
       }
 
-      log(res);
-      console.log(chalk.green(`${res.length} - items found`));
+      log(res.slice(0, 1));
+
+      if (res.length > 1) {
+        console.log(chalk.cyanBright(`... ${res.length - 1} more items.`));
+      }
 
       const { exportToCsv } = await prompt<{ exportToCsv: boolean }>([
         {
@@ -164,7 +170,7 @@ const init = async () => {
           })
           .replace(/\//g, "-");
 
-        const filePath = path.join(dir, `${script}-data-${date}.csv`);
+        const filePath = path.join(dir, `${script}-data-${date}-${env}.csv`);
         fs.writeFileSync(filePath, csv);
       }
     }

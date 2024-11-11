@@ -15,8 +15,23 @@ export type SalonType = {
   attributes: {
     name: string;
     createdAt: string;
+    users: { data: { id: number; attributes: UserType }[] };
     owner: { data: { id: number; attributes: UserType } };
   };
+};
+
+export type StylistType = {
+  id: number;
+  attributes: {
+    email: string;
+    createdAt: string;
+    salon: { data: { id: number; attributes: SalonType } };
+  };
+};
+
+export type UsersResponseType = {
+  data: UserType[];
+  meta: MetaType;
 };
 
 export type SalonsResponseType = {
@@ -24,7 +39,7 @@ export type SalonsResponseType = {
   meta: MetaType;
 };
 
-export type UsersResponseType = {
-  data: UserType[];
+export type StylistsResponseType = {
+  data: StylistType[];
   meta: MetaType;
 };

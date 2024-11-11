@@ -19,6 +19,11 @@ export const salonsWithoutOwners = async (
                 $null: true,
               },
             },
+            users: {
+              username: {
+                $null: true,
+              },
+            },
           },
           populate: {
             owner: true,
@@ -69,7 +74,9 @@ export const salonsWithoutOwners = async (
         const { status } = await api.delete(`/api/salons/${salon.id}`);
 
         if (status >= 200 && status < 300) {
-          console.log(chalk.redBright(`${salon.id} - Deleted successfully`));
+          console.log(
+            chalk.redBright(`${salon.id} - Salon was deleted successfully`)
+          );
         }
       }
     }
